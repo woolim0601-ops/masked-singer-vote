@@ -1,0 +1,15 @@
+name = "school-mask-vote-api"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+# 자신의 GitHub Pages 도메인으로 변경 (끝에 / 없음). 예시: https://USERNAME.github.io
+ALLOWED_ORIGIN = "https://woolim0601-ops.github.io"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "school-mask-vote-db"
+# npx wrangler d1 create 명령의 결과로 나온 실제 database_id로 변경
+# 실제 값이 아닌 예시임
+# database_id = "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+database_id = "REPLACE_WITH_DATABASE_ID"
