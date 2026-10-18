@@ -25,6 +25,7 @@ function paint(data){
   $('votesTotal').textContent=Number(count.total).toLocaleString();$('adminA').textContent=Number(count.A).toLocaleString();$('adminB').textContent=Number(count.B).toLocaleString();
   adminTimer();
   $('startRound').disabled=selected()?.status!=='ready';
+  $('showRound').disabled=selected()?.id===currentId || rounds.some(x=>currentPhase(x)==='open');
   $('closeRound').disabled=!(r?.status==='open' && Number(sel.value)===currentId);
   $('revealRound').disabled=!(currentPhase(r)==='closed' && Number(sel.value)===currentId);
 }
@@ -45,8 +46,9 @@ $('login').addEventListener('click',async()=>{
 });
 $('adminToken').addEventListener('keydown',e=>{if(e.key==='Enter')$('login').click()});
 $('logout').addEventListener('click',()=>{sessionStorage.removeItem('mask-stage-admin-token');token='';loggedIn(false);message('로그아웃되었습니다.');});
-$('roundSelect').addEventListener('change',()=>{fillForm();const r=selected(),live=rounds.find(x=>x.id===currentId);$('startRound').disabled=r?.status!=='ready';$('closeRound').disabled=!(live?.status==='open'&&r?.id===currentId);$('revealRound').disabled=!(currentPhase(live)==='closed'&&r?.id===currentId);});
+$('roundSelect').addEventListener('change',()=>{fillForm();const r=selected(),live=rounds.find(x=>x.id===currentId);$('startRound').disabled=r?.status!=='ready';$('showRound').disabled=r?.id===currentId||rounds.some(x=>currentPhase(x)==='open');$('closeRound').disabled=!(live?.status==='open'&&r?.id===currentId);$('revealRound').disabled=!(currentPhase(live)==='closed'&&r?.id===currentId);});
 $('saveRound').addEventListener('click',()=>act('save',{roundId:selected()?.id,title:$('roundTitle').value,a:$('editA').value,b:$('editB').value}));
+$('showRound').addEventListener('click',()=>{const r=selected();if(!r||r.id===currentId)return;if(confirm(`${r.title}을(를) 관객과 무대 화면에 표시할까요?\n투표가 자동으로 시작되지는 않습니다.`))act('switch',{roundId:r.id});});
 $('startRound').addEventListener('click',()=>{
   const r=selected();if(!r)return;
   if(confirm(`${r.title}의 투표를 지금 시작할까요?\n시작하면 정확히 60초 뒤 서버에서 자동 마감됩니다.`))act('start',{roundId:r.id});
