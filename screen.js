@@ -10,7 +10,7 @@ function timer(){if(!current){$('screenCountdown').textContent='--:--';return;}
 function render(){if(!current)return;
   $('screenRound').textContent=current.title;
   $('screenWaiting').hidden=false;$('screenResult').hidden=true;
-  if(current.phase==='ready'){$('screenTitle').textContent='투표 준비 중';$('screenHint').textContent='관객 여러분, QR 코드를 미리 스캔해주세요!';$('qrImage').hidden=false;$('screenUrl').hidden=false;}
+  if(current.phase==='ready'){$('screenTitle').textContent='투표 준비 중';$('screenHint').textContent='학우 여러분, QR 코드를 미리 스캔해주세요!';$('qrImage').hidden=false;$('screenUrl').hidden=false;}
   else if(current.phase==='open'){$('screenTitle').textContent='지금 투표해주세요!';$('screenHint').textContent='더 마음에 드는 참가자를 선택해주세요.';$('qrImage').hidden=false;$('screenUrl').hidden=false;}
   else if(current.phase==='closed'){$('screenTitle').textContent='최종 결과 집계 중';$('screenHint').textContent='투표가 마감되었습니다. 잠시 후 공개됩니다.';$('qrImage').hidden=true;$('screenUrl').hidden=true;}
   else if(current.phase==='revealed'){
