@@ -1,6 +1,68 @@
-<div class="screen-brand">복면개왕</div>
-<div class="eyebrow">모두가 하나되는 2026 학생회</div>
-...
-<p id="screenHint" class="screen-hint">학우 여러분, QR 코드를 미리 스캔해주세요!</p>
-...
-<footer class="screen-footer">개운중학교 제31회 곰솔제 복면개왕</footer>
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#090f28">
+  <title>복면개왕 | 대형 스크린</title>
+  <link rel="stylesheet" href="./assets/styles.css">
+</head>
+<body class="screen-page">
+  <div class="ambient"></div>
+
+  <main class="screen-shell">
+    <div class="screen-header">
+      <div class="screen-brand">복면개왕</div>
+      <div class="eyebrow">모두가 하나되는 2026 학생회</div>
+    </div>
+
+    <div class="screen-main">
+      <p class="screen-overline" id="screenRound">ROUND 01</p>
+      <h1 id="screenTitle">관객 투표</h1>
+
+      <div id="screenWaiting">
+        <p id="screenHint" class="screen-hint">학우 여러분, QR 코드를 미리 스캔해주세요!</p>
+        <img id="qrImage" src="./assets/qr.png" alt="관객용 투표 페이지 QR 코드" class="screen-qr">
+        <p class="screen-url" id="screenUrl"></p>
+        <div class="screen-countdown" id="screenCountdown">--:--</div>
+      </div>
+
+      <div id="screenResult" hidden>
+        <p class="screen-result-kicker">FINAL RESULT</p>
+
+        <div class="screen-result-grid">
+          <div class="screen-result-item">
+            <span id="sA">A 참가자</span>
+            <b id="sAPct">0%</b>
+            <div class="bar-bg">
+              <div id="sABar" class="bar bar-a"></div>
+            </div>
+            <small id="sAVotes">0표</small>
+          </div>
+
+          <div class="screen-vs">VS</div>
+
+          <div class="screen-result-item">
+            <span id="sB">B 참가자</span>
+            <b id="sBPct">0%</b>
+            <div class="bar-bg">
+              <div id="sBBar" class="bar bar-b"></div>
+            </div>
+            <small id="sBVotes">0표</small>
+          </div>
+        </div>
+
+        <div class="screen-winner" id="sWinner"></div>
+        <div class="screen-total" id="sTotal"></div>
+      </div>
+    </div>
+
+    <div id="screenNetwork" class="screen-network"></div>
+
+    <footer class="screen-footer">개운중학교 제31회 곰솔제 복면개왕</footer>
+  </main>
+
+  <script src="./config.js"></script>
+  <script type="module" src="./assets/screen.js"></script>
+</body>
+</html>
