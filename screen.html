@@ -1,68 +1,122 @@
-<!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#090f28">
-  <title>복면개왕 | 대형 스크린</title>
-  <link rel="stylesheet" href="./assets/styles.css">
-</head>
-<body class="screen-page">
-  <div class="ambient"></div>
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090f28"><title>MASK STAGE | 대형 스크린</title><link rel="stylesheet" href="./assets/styles.css"><style>
+/* Screen-only contestant name display; visible before results are revealed. */
+.screen-candidates { display:flex; align-items:center; justify-content:center; gap:clamp(12px,2vw,42px); width:min(83vw,1250px); margin:2.2vh auto 1vh; }
+.screen-candidate { flex:1; min-width:0; padding:clamp(12px,1.4vw,22px); background:rgba(31,47,85,.92); border:1px solid #51638c; border-radius:16px; color:#fff; font-size:clamp(22px,2.5vw,42px); font-weight:800; overflow-wrap:anywhere; }
+.screen-candidate strong { display:inline-block; margin-right:.5em; color:#f4be64; }
+.screen-versus { color:#f4be64; font-weight:900; font-size:clamp(22px,2.5vw,50px); }
+.screen-state-note { color:#c0cae0; font-size:clamp(12px,1.15vw,18px); margin-top:1vh; }
+[hidden] {display:none !important;}
+</style></head><body class="screen-page"><div class="ambient"></div><main class="screen-shell"><div class="screen-header"><div class="screen-brand">MASK <span>✦</span> STAGE</div><div class="eyebrow">LIVE AUDIENCE VOTE</div></div><div class="screen-main"><p class="screen-overline" id="screenRound">서버 확인 중</p><h1 id="screenTitle">서버 연결 중</h1><div id="screenWaiting"><p id="screenHint" class="screen-hint">관객 여러분, QR 코드로 투표에 참여해주세요!</p><div class="screen-candidates" id="screenCandidates" aria-label="출연 참가자"><div class="screen-candidate"><strong>A</strong><span id="screenNameA">불러오는 중</span></div><div class="screen-versus">VS</div><div class="screen-candidate"><strong>B</strong><span id="screenNameB">불러오는 중</span></div></div><img id="qrImage" src="./assets/qr.png" alt="관객용 투표 페이지 QR 코드" class="screen-qr"><p class="screen-url" id="screenUrl"></p><div class="screen-countdown" id="screenCountdown">--:--</div></div><div id="screenResult" hidden><p class="screen-result-kicker">FINAL RESULT</p><div class="screen-result-grid"><div class="screen-result-item"><span id="sA">A 참가자</span><b id="sAPct">0%</b><div class="bar-bg"><div id="sABar" class="bar bar-a"></div></div><small id="sAVotes">0표</small></div><div class="screen-vs">VS</div><div class="screen-result-item"><span id="sB">B 참가자</span><b id="sBPct">0%</b><div class="bar-bg"><div id="sBBar" class="bar bar-b"></div></div><small id="sBVotes">0표</small></div></div><div class="screen-winner" id="sWinner"></div><div class="screen-total" id="sTotal"></div></div></div><div id="screenNetwork" class="screen-network"></div><footer class="screen-footer">SCHOOL FESTIVAL · MASK STAGE · LIVE RESULT</footer></main><script src="./config.js"></script><script>
 
-  <main class="screen-shell">
-    <div class="screen-header">
-      <div class="screen-brand">복면개왕</div>
-      <div class="eyebrow">모두가 하나되는 2026 학생회</div>
-    </div>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const API = String(window.MASK_VOTE_API || '').replace(/\/$/, '');
+const audienceURL = new URL('./index.html', window.location.href).href;
+$('screenUrl').textContent = audienceURL;
+let current=null, timeOffset=0, inflight=false, socket=null, retries=0, reconnectTimer=null;
+function percent(value,total) { return total ? (Number(value)||0) / total * 100 : 0; }
+function timeText(ms) {
+  const sec=Math.max(0,Math.ceil(ms/1000));
+  return String(Math.floor(sec/60)).padStart(2,'0') + ':' + String(sec%60).padStart(2,'0');
+}
+function timer() {
+  if (!current || current.phase !== 'open') { $('screenCountdown').textContent=''; return; }
+  const left=Number(current.endsAt||0)-Date.now()+timeOffset;
+  $('screenCountdown').textContent=timeText(left);
+  if(left<=0) {current.phase='closed';render();void fetchState();}
+}
+function render() {
+  if (!current) return;
+  $('screenRound').textContent=current.title || '라운드';
+  $('screenNameA').textContent=current.a || 'A 참가자';
+  $('screenNameB').textContent=current.b || 'B 참가자';
+  $('screenWaiting').hidden=false;
+  $('screenResult').hidden=true;
+  $('screenCandidates').hidden=current.phase === 'closed';
+  $('screenCountdown').hidden=current.phase !== 'open';
+  $('qrImage').hidden=!(current.phase==='ready' || current.phase==='open');
+  $('screenUrl').hidden=!(current.phase==='ready' || current.phase==='open');
+  if (current.phase==='ready') {
+    $('screenTitle').textContent='투표 준비 중';
+    $('screenHint').textContent='관객 여러분, QR 코드를 미리 스캔해 주세요!';
+  } else if (current.phase==='open') {
+    $('screenTitle').textContent='지금 투표해 주세요!';
+    $('screenHint').textContent='더 마음에 드는 참가자를 선택해 주세요.';
+  } else if (current.phase==='closed') {
+    $('screenTitle').textContent='최종 결과 집계 중';
+    $('screenHint').textContent='투표가 마감되었습니다. 잠시 후 결과가 공개됩니다.';
+  } else if (current.phase==='revealed') {
+    $('screenWaiting').hidden=true;
+    $('screenResult').hidden=false;
+    $('screenTitle').textContent='최종 투표 결과';
+    const a=Number(current.results?.A||0), b=Number(current.results?.B||0), total=a+b;
+    $('sA').textContent=current.a;
+    $('sB').textContent=current.b;
+    $('sAPct').textContent=percent(a,total).toFixed(1)+'%';
+    $('sBPct').textContent=percent(b,total).toFixed(1)+'%';
+    $('sABar').style.width=percent(a,total)+'%';
+    $('sBBar').style.width=percent(b,total)+'%';
+    $('sAVotes').textContent=a.toLocaleString()+'표';
+    $('sBVotes').textContent=b.toLocaleString()+'표';
+    $('sWinner').textContent=total===0?'유효 투표 없음':a===b?'무승부!':'🏆 '+(a>b?current.a:current.b)+' 승리!';
+    $('sTotal').textContent='총 '+total.toLocaleString()+'표';
+  }
+  timer();
+}
+function applyState(state) {
+  if (!state || !state.serverTime) return;
+  timeOffset=Date.now()-Number(state.serverTime);
+  current=state.round;
+  if (current) { render(); $('screenNetwork').textContent=''; }
+  else {
+    $('screenRound').textContent='라운드 없음';
+    $('screenTitle').textContent='준비 중';
+    $('screenNetwork').textContent='진행할 라운드가 아직 없습니다.';
+  }
+}
+async function fetchState() {
+  if (inflight) return;
+  if (!/^https:\/\/[a-z0-9.-]+$/i.test(API) || API.includes('PASTE_')) {
+    $('screenNetwork').textContent='config.js의 Worker 주소를 확인해 주세요.';return;
+  }
+  inflight=true;
+  try {
+    const response=await fetch(API+'/api/state',{cache:'no-store'});
+    if(!response.ok) throw new Error('HTTP '+response.status);
+    applyState(await response.json());
+  } catch(e) {
+    $('screenNetwork').textContent='서버 연결 확인 필요: '+e.message;
+    console.error('SCREEN state request failed',e);
+  } finally { inflight=false; }
+}
+function connect() {
+  if (!/^https:\/\/[a-z0-9.-]+$/i.test(API) || API.includes('PASTE_')) return;
+  if(socket && (socket.readyState===WebSocket.OPEN || socket.readyState===WebSocket.CONNECTING)) return;
+  try {
+    socket=new WebSocket(API.replace(/^http/i,'ws')+'/api/live');
+    socket.onopen=()=>{retries=0;void fetchState();};
+    socket.onmessage=e=>{
+      try {const packet=JSON.parse(e.data);if(packet.type==='state')applyState(packet.state);}
+      catch(err){console.warn('Invalid live update',err);}
+    };
+    socket.onerror=()=>socket?.close();
+    socket.onclose=()=>{
+      socket=null;
+      const delay=Math.min(15000,1000*Math.pow(2,Math.min(retries++,4)));
+      clearTimeout(reconnectTimer);reconnectTimer=setTimeout(connect,delay);
+    };
+  } catch(e) {
+    console.warn('WebSocket unavailable',e);
+    clearTimeout(reconnectTimer);reconnectTimer=setTimeout(connect,5000);
+  }
+}
+// This is one large-screen client; periodic GET ensures correctness even if push fails.
+setInterval(fetchState,5000);
+setInterval(timer,250);
+window.addEventListener('online',()=>{void fetchState();connect();});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)void fetchState();});
+void fetchState();connect();
+})();
 
-    <div class="screen-main">
-      <p class="screen-overline" id="screenRound">ROUND 01</p>
-      <h1 id="screenTitle">투표</h1>
-
-      <div id="screenWaiting">
-        <p id="screenHint" class="screen-hint">학우 여러분, QR 코드를 미리 스캔해주세요!</p>
-        <img id="qrImage" src="./assets/qr.png" alt="관객용 투표 페이지 QR 코드" class="screen-qr">
-        <p class="screen-url" id="screenUrl"></p>
-        <div class="screen-countdown" id="screenCountdown">--:--</div>
-      </div>
-
-      <div id="screenResult" hidden>
-        <p class="screen-result-kicker">FINAL RESULT</p>
-
-        <div class="screen-result-grid">
-          <div class="screen-result-item">
-            <span id="sA">A 참가자</span>
-            <b id="sAPct">0%</b>
-            <div class="bar-bg">
-              <div id="sABar" class="bar bar-a"></div>
-            </div>
-            <small id="sAVotes">0표</small>
-          </div>
-
-          <div class="screen-vs">VS</div>
-
-          <div class="screen-result-item">
-            <span id="sB">B 참가자</span>
-            <b id="sBPct">0%</b>
-            <div class="bar-bg">
-              <div id="sBBar" class="bar bar-b"></div>
-            </div>
-            <small id="sBVotes">0표</small>
-          </div>
-        </div>
-
-        <div class="screen-winner" id="sWinner"></div>
-        <div class="screen-total" id="sTotal"></div>
-      </div>
-    </div>
-
-    <div id="screenNetwork" class="screen-network"></div>
-
-    <footer class="screen-footer">개운중학교 제31회 곰솔제 복면개왕</footer>
-  </main>
-
-  <script src="./config.js"></script>
-  <script type="module" src="./assets/screen.js"></script>
-</body>
-</html>
+</script></body></html>
