@@ -1,7 +1,97 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090f28"><title>MASK STAGE | 관리자</title><link rel="stylesheet" href="./assets/styles.css"></head>
-<body class="manager-page"><div class="ambient"></div><main class="shell manager-shell"><header class="masthead"><div class="brand-mark">M<span>✦</span></div><div><div class="eyebrow">SCHOOL FESTIVAL</div><h1 class="brand-name">MASK STAGE CONTROL</h1></div></header><div class="manager-heading"><h2>운영자 제어실</h2><p>관객과 무대 스크린은 <b>결과 공개</b>를 누르기 전까지 득표수를 볼 수 없습니다.</p></div>
-<section class="manager-card" id="loginPanel"><h3>관리자 인증</h3><label for="adminToken">Cloudflare에 저장한 관리자 비밀키</label><input type="password" id="adminToken" autocomplete="off" placeholder="비밀키 입력"><button type="button" class="primary-btn" id="login">제어실 열기 →</button><p class="muted-small">비밀키는 브라우저 탭이 열려 있는 동안만 저장되며 GitHub에 올리지 않습니다.</p></section>
-<div id="controlPanel" hidden><section class="manager-card"><div class="manager-row"><h3>실시간 현황</h3><span class="status-badge" id="adminStatus">대기</span></div><div class="dashboard-metrics"><div><span>현재 라운드</span><strong id="activeRound">-</strong></div><div><span>접수된 투표</span><strong id="votesTotal">0</strong></div><div><span>남은 시간</span><strong id="adminCountdown">--:--</strong></div></div><p class="muted-small">결과는 여기서만 미리 확인할 수 있으며, 관객에게는 공개 버튼을 누른 뒤 표시됩니다.</p><div class="private-counts">A <strong id="adminA">0</strong>표 <span>·</span> B <strong id="adminB">0</strong>표</div></section>
-<section class="manager-card"><h3>라운드 관리</h3><label for="roundSelect">라운드 선택</label><select id="roundSelect"></select><label for="roundTitle">라운드명</label><input id="roundTitle" maxlength="60"><div class="two-inputs"><div><label for="editA">A 참가자 이름</label><input id="editA" maxlength="90"></div><div><label for="editB">B 참가자 이름</label><input id="editB" maxlength="90"></div></div><button type="button" class="secondary-btn" id="saveRound">선택 라운드 이름 저장</button><p class="muted-small">이름 변경은 아직 시작하지 않은 라운드에서만 가능합니다.</p></section>
-<section class="manager-card"><h3>진행 제어</h3><div class="manager-buttons"><button class="action-open" id="startRound">▶ 60초 투표 시작</button><button class="action-close" id="closeRound">■ 투표 즉시 마감</button><button class="action-reveal" id="revealRound">★ 결과 전체 공개</button></div><p class="muted-small">공연장 발표 순간에 마지막 버튼을 누르세요. 관객 화면은 서버 갱신 시 자동으로 결과를 확인합니다.</p></section>
-<section class="manager-card"><h3>리허설용</h3><p class="muted-small">테스트에서 투표한 기록을 삭제하고 준비 상태로 되돌립니다. 본 행사 중에는 누르지 마세요.</p><button type="button" class="danger-btn" id="resetRound">선택 라운드 투표 완전 초기화</button></section><button type="button" class="text-btn" id="logout">관리자 로그아웃</button></div><p id="adminMessage" class="service-message" role="status"></p><footer class="site-footer">MASK STAGE <span>✦</span> PRODUCTION CONTROL</footer></main><script src="./config.js"></script><script type="module" src="./assets/admin.js"></script></body></html>
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090f28">
+  <title>복면개왕 | 운영자 제어실</title>
+  <link rel="stylesheet" href="./assets/styles.css">
+</head>
+<body class="manager-page">
+  <div class="ambient"></div>
+  <main class="shell manager-shell">
+    <header class="masthead">
+      <div class="brand-mark">왕<span>✦</span></div>
+      <div>
+        <div class="eyebrow">모두가 하나되는 2026 학생회</div>
+        <h1 class="brand-name">복면개왕 제어실</h1>
+      </div>
+    </header>
+
+    <div class="manager-heading">
+      <h2>운영자 제어실</h2>
+      <p>학우들과 무대 스크린에는 <b>결과 전체 공개</b> 버튼을 누르기 전까지 득표수가 표시되지 않습니다.</p>
+    </div>
+
+    <section class="manager-card" id="loginPanel">
+      <h3>관리자 인증</h3>
+      <label for="adminToken">Cloudflare에 저장한 관리자 비밀키</label>
+      <input type="password" id="adminToken" autocomplete="off" placeholder="비밀키 입력">
+      <button type="button" class="primary-btn" id="login">제어실 열기 →</button>
+      <p class="muted-small">비밀키는 브라우저 탭이 열려 있는 동안만 저장되며 GitHub에 올리지 않습니다.</p>
+    </section>
+
+    <div id="controlPanel" hidden>
+      <section class="manager-card">
+        <div class="manager-row">
+          <h3>실시간 현황</h3>
+          <span class="status-badge" id="adminStatus">대기</span>
+        </div>
+        <div class="dashboard-metrics">
+          <div><span>현재 라운드</span><strong id="activeRound">-</strong></div>
+          <div><span>접수된 투표</span><strong id="votesTotal">0</strong></div>
+          <div><span>남은 시간</span><strong id="adminCountdown">--:--</strong></div>
+        </div>
+        <p class="muted-small">결과는 운영자만 미리 확인할 수 있으며, 학우들은 공개 후 확인할 수 있습니다.</p>
+        <div class="private-counts">
+          A <strong id="adminA">0</strong>표 <span>·</span> B <strong id="adminB">0</strong>표
+        </div>
+      </section>
+
+      <section class="manager-card">
+        <h3>라운드 관리</h3>
+        <label for="roundSelect">라운드 선택</label>
+        <select id="roundSelect"></select>
+        <label for="roundTitle">라운드명</label>
+        <input id="roundTitle" maxlength="60">
+        <div class="two-inputs">
+          <div>
+            <label for="editA">A 참가자 이름</label>
+            <input id="editA" maxlength="90">
+          </div>
+          <div>
+            <label for="editB">B 참가자 이름</label>
+            <input id="editB" maxlength="90">
+          </div>
+        </div>
+        <button type="button" class="secondary-btn" id="saveRound">선택 라운드 이름 저장</button>
+        <p class="muted-small">이름 변경은 아직 시작하지 않은 라운드에서만 가능합니다.</p>
+      </section>
+
+      <section class="manager-card">
+        <h3>진행 제어</h3>
+        <div class="manager-buttons">
+          <button type="button" class="action-open" id="startRound">▶ 60초 투표 시작</button>
+          <button type="button" class="action-close" id="closeRound">■ 투표 즉시 마감</button>
+          <button type="button" class="action-reveal" id="revealRound">★ 결과 전체 공개</button>
+        </div>
+        <p class="muted-small">MC 발표 순간에 결과 공개를 누르세요. 학우들의 화면은 서버 상태를 갱신하면서 결과가 표시됩니다.</p>
+      </section>
+
+      <section class="manager-card">
+        <h3>리허설용</h3>
+        <p class="muted-small">시험 투표 기록을 삭제하고 준비 상태로 되돌립니다. 본 행사 중에는 누르지 마세요.</p>
+        <button type="button" class="danger-btn" id="resetRound">선택 라운드 투표 완전 초기화</button>
+      </section>
+
+      <button type="button" class="text-btn" id="logout">관리자 로그아웃</button>
+    </div>
+
+    <p id="adminMessage" class="service-message" role="status"></p>
+    <footer class="site-footer">개운중학교 제31회 곰솔제 <span>✦</span> 복면개왕 운영실</footer>
+  </main>
+
+  <script src="./config.js"></script>
+  <script type="module" src="./assets/admin.js"></script>
+</body>
+</html>
