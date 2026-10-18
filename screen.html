@@ -36,7 +36,7 @@ function render() {
   if (!current) return;
   $('screenTitle').after($('sTotal'));
 $('sTotal').hidden = current.phase !== 'revealed';
-$('sTotal').style.cssText = 'font-size:28px;font-weight:700;color:#c0cae0;margin:0 0 2vh;line-height:1.2;';
+$('sTotal').style.cssText = 'font-size:28px;font-weight:700;color:#c0cae0;margin:0 0 1vh;line-height:1.2;';
   $('screenRound').textContent=current.title || '라운드';
   $('screenNameA').textContent=current.a || 'A 참가자';
   $('screenNameB').textContent=current.b || 'B 참가자';
