@@ -1,5 +1,5 @@
-import {$,api,clock,percent,roundPercent} from './shared.js';
-let current=null, selected=null, timerOffset=0, locked=false, isFetching=false, lastPhase=null;
+import {$,api,clock,percent,roundPercent,connectLive} from './shared.js';
+let current=null, selected=null, timerOffset=0, locked=false, isFetching=false;
 const VOTER_STORAGE_KEY='mask-stage-browser-id-v1';
 function browserId(){
   let id=localStorage.getItem(VOTER_STORAGE_KEY);
@@ -57,18 +57,19 @@ function render(){
     $('resultTotal').textContent=`총 ${total.toLocaleString()}표 참여`;
   }
   $('phaseHint').textContent=r.phase==='open'?'투표 종료까지 남은 시간':r.phase==='closed'?'공식 집계 중':r.phase==='revealed'?'관객 투표가 종료되었습니다':'투표 시작을 기다리는 중';
-  lastPhase=r.phase;updateTimer();
+  updateTimer();
+}
+function applyState(state) {
+  timerOffset=Date.now()-state.serverTime;
+  current=state.round;
+  if(current) {render();$('serviceMessage').textContent='';}
+  else $('serviceMessage').textContent='아직 등록된 라운드가 없습니다.';
 }
 async function refresh(){
   if(isFetching || document.hidden)return;
   isFetching=true;
-  try {
-    const state=await api('/api/state');
-    timerOffset=Date.now()-state.serverTime;
-    current=state.round;
-    if(current){render();$('serviceMessage').textContent='';}
-    else $('serviceMessage').textContent='아직 등록된 라운드가 없습니다.';
-  } catch(e){$('serviceMessage').textContent=`연결 상태를 확인해 주세요: ${e.message}`;}
+  try { applyState(await api('/api/state')); }
+  catch(e){$('serviceMessage').textContent=`연결 상태를 확인해 주세요: ${e.message}`;}
   finally {isFetching=false;}
 }
 async function submit(){
@@ -86,12 +87,13 @@ async function submit(){
     if(current?.id===rId){locked=false;render();}
   }
 }
-function nextDelay(){switch(current?.phase){case 'open':return 12000;case 'closed':return 5500;case 'revealed':return 30000;default:return 20000;}}
-async function poll(){await refresh();setTimeout(poll,nextDelay());}
+// WebSocket receives event changes immediately. HTTP polling is a fallback only.
+const isLiveConnected=connectLive(applyState,()=>void refresh());
+setInterval(()=>{if(!isLiveConnected()) void refresh();},15000);
 $('chooseA').addEventListener('click',()=>select('A'));
 $('chooseB').addEventListener('click',()=>select('B'));
 $('submitVote').addEventListener('click',submit);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refresh();});
 setInterval(updateTimer,250);
 try{browserId();}catch(e){$('serviceMessage').textContent='이 브라우저에서는 저장 기능을 사용할 수 없습니다. 일반 모드에서 접속해주세요.';}
-void poll();
+void refresh();
