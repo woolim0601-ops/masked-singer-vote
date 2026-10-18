@@ -1,4 +1,4 @@
-import {$,api,clock,percent,roundPercent} from './shared.js';
+import {$,api,clock,percent,roundPercent,connectLive} from './shared.js';
 let current=null,offset=0,fetching=false;
 const audienceURL = new URL('./index.html',window.location.href).href;
 $('screenUrl').textContent=audienceURL;
@@ -26,10 +26,12 @@ function render(){if(!current)return;
   }
   timer();
 }
+function applyState(state){offset=Date.now()-state.serverTime;current=state.round;if(current)render();$('screenNetwork').textContent='';}
 async function refresh(){if(fetching)return;fetching=true;
-  try{let result=await api('/api/state');offset=Date.now()-result.serverTime;current=result.round;render();$('screenNetwork').textContent='';}
+  try{applyState(await api('/api/state'));}
   catch(e){$('screenNetwork').textContent=`연결 확인 필요: ${e.message}`;}
   finally{fetching=false;}
 }
-async function poll(){await refresh();setTimeout(poll,current?.phase==='closed'?5500:current?.phase==='open'?12000:20000);}
-setInterval(timer,250);void poll();
+const isLiveConnected=connectLive(applyState,()=>void refresh());
+setInterval(()=>{if(!isLiveConnected())void refresh();},15000);
+setInterval(timer,250);void refresh();
