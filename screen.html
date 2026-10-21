@@ -54,14 +54,12 @@ function render() {
   } else if (current.phase==='closed') {
     $('screenTitle').textContent='최종 결과 집계 중';
     $('screenHint').textContent='투표가 마감되었습니다. 잠시 후 결과가 공개됩니다.';
-  } else if (current.phase==='revealed') {
-    $('screenWaiting').hidden = true;
-    $('screenResult').hidden = false;
-    $('screenTitle').textContent = '최종 투표 결과';
-    $('sWinner').textContent = '';
-}
-timer();
-}
+    } else if (current.phase==='revealed') {
+    $('screenWaiting').hidden=true;
+    $('screenResult').hidden=false;
+    $('screenTitle').textContent='최종 투표 결과';
+    $('sWinner').textContent='';
+    $('sWinner').hidden=true;
   }
   timer();
 }
