@@ -55,13 +55,13 @@ function render() {
     $('screenTitle').textContent='최종 결과 집계 중';
     $('screenHint').textContent='투표가 마감되었습니다. 잠시 후 결과가 공개됩니다.';
   } else if (current.phase==='revealed') {
-    $('screenWaiting').hidden=true;
-    $('screenResult').hidden=false;
-    $('screenTitle').textContent='최종 투표 결과';
-    $('sWinner').textContent = current.outcome === 'no_votes' ? '유효 투표 없음'
-      : current.outcome === 'tie' ? '무승부!'
-      : current.outcome === 'winner' ? '🏆 ' + (current.winner === 'A' ? current.a : current.b) + ' 승리!'
-      : '결과 발표 준비 중';
+    $('screenWaiting').hidden = true;
+    $('screenResult').hidden = false;
+    $('screenTitle').textContent = '최종 투표 결과';
+    $('sWinner').textContent = '';
+}
+timer();
+}
   }
   timer();
 }
