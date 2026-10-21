@@ -22,7 +22,11 @@ function paint(data){
   let r=rounds.find(x=>x.id===currentId);
   $('activeRound').textContent=r?.title||'-';
   $('adminStatus').textContent=r?({ready:'시작 대기',open:'진행 중',closed:'마감',revealed:'결과 공개'}[currentPhase(r)]):'준비';
-  $('votesTotal').textContent=Number(count.total).toLocaleString();$('adminA').textContent=Number(count.A).toLocaleString();$('adminB').textContent=Number(count.B).toLocaleString();
+  const aVotes=Number(count.A)||0, bVotes=Number(count.B)||0, total=aVotes+bVotes;
+  $('votesTotal').textContent=total.toLocaleString();
+  $('adminA').textContent=aVotes.toLocaleString();$('adminB').textContent=bVotes.toLocaleString();
+  $('adminPctA').textContent=(total ? aVotes/total*100 : 0).toFixed(1)+'%';
+  $('adminPctB').textContent=(total ? bVotes/total*100 : 0).toFixed(1)+'%';
   adminTimer();
   $('startRound').disabled=selected()?.status!=='ready';
   $('closeRound').disabled=!(r?.status==='open' && Number(sel.value)===currentId);
@@ -52,7 +56,7 @@ $('startRound').addEventListener('click',()=>{
   if(confirm(`${r.title}의 투표를 지금 시작할까요?\n시작하면 정확히 60초 뒤 서버에서 자동 마감됩니다.`))act('start',{roundId:r.id});
 });
 $('closeRound').addEventListener('click',()=>{const r=selected();if(r&&confirm('지금 투표를 즉시 마감할까요?'))act('close',{roundId:r.id});});
-$('revealRound').addEventListener('click',()=>{const r=selected();if(r&&confirm('관객 전원과 대형 스크린에 최종 결과를 공개할까요?'))act('reveal',{roundId:r.id});});
+$('revealRound').addEventListener('click',()=>{const r=selected();if(r&&confirm('관객과 대형 스크린에 승자 이름만 공개할까요? (득표수·투표율은 관리자 전용)'))act('reveal',{roundId:r.id});});
 $('resetRound').addEventListener('click',()=>{const r=selected();if(!r)return;
   if(confirm(`${r.title}의 모든 투표 기록을 삭제합니다.\n공연 중에는 사용하지 마세요.\n정말 초기화할까요?`))act('reset',{roundId:r.id,confirm:'RESET'});
 });

@@ -6,16 +6,18 @@
 .screen-versus { color:#f4be64; font-weight:900; font-size:clamp(22px,2.5vw,50px); }
 .screen-state-note { color:#c0cae0; font-size:clamp(12px,1.15vw,18px); margin-top:1vh; }
 [hidden] {display:none !important;}
-<style>
-  .screen-result-kicker {
-  margin-top: 0 vh !important;
-  margin-bottom: 1vh;
-}
-</style></head><body class="screen-page"><div class="ambient"></div><main class="screen-shell"><div class="screen-header"><div class="screen-brand">곰솔제 복면개왕</div><div class="eyebrow">모두가 하나되는 2026 학생회</div></div><div class="screen-main"><p class="screen-overline" id="screenRound">서버 확인 중</p><h1 id="screenTitle">서버 연결 중</h1><div id="screenWaiting"><p id="screenHint" class="screen-hint">학우 여러분, QR 코드로 투표에 참여해주세요!</p><div class="screen-candidates" id="screenCandidates" aria-label="출연 참가자"><div class="screen-candidate"><strong>A</strong><span id="screenNameA">불러오는 중</span></div><div class="screen-versus">VS</div><div class="screen-candidate"><strong>B</strong><span id="screenNameB">불러오는 중</span></div></div><img id="qrImage" src="./assets/qr.png" alt="관객용 투표 페이지 QR 코드" class="screen-qr"><p class="screen-url" id="screenUrl"></p><div class="screen-countdown" id="screenCountdown">--:--</div></div><div id="screenResult" hidden><p class="screen-result-kicker">FINAL RESULT</p><div class="screen-result-grid"><div class="screen-result-item"><span id="sA">A 참가자</span><b id="sAPct">0%</b><div class="bar-bg"><div id="sABar" class="bar bar-a"></div></div><small id="sAVotes">0표</small></div><div class="screen-vs">VS</div><div class="screen-result-item"><span id="sB">B 참가자</span><b id="sBPct">0%</b><div class="bar-bg"><div id="sBBar" class="bar bar-b"></div></div><small id="sBVotes">0표</small></div></div><div class="screen-winner" id="sWinner"></div><div class="screen-total" id="sTotal"></div></div></div><div id="screenNetwork" class="screen-network"></div><footer class="screen-footer">개운중학교 제31회 곰솔제 복면개왕</footer></main><script src="./config.js"></script><script>
-<script src="./config.js"></script>
-<script>
+
+.screen-result-kicker { margin:2vh 0 2vh; }
+#screenResult { width:min(90vw,1300px); }
+#screenResult .screen-winner { margin:2vh auto 0; color:#ffdaa3; font-size:clamp(34px,4.4vw,78px); font-weight:1000; text-align:center; line-height:1.35; }
+.screen-main:has(#screenResult:not([hidden])) h1 { margin-bottom:1vh; }
+</style></head><body class="screen-page"><div class="ambient"></div><main class="screen-shell"><div class="screen-header"><div class="screen-brand">복면개왕</div><div class="eyebrow">모두가 하나되는 2026 학생회</div></div><div class="screen-main"><p class="screen-overline" id="screenRound">서버 확인 중</p><h1 id="screenTitle">서버 연결 중</h1><div id="screenWaiting"><p id="screenHint" class="screen-hint">학우 여러분, QR 코드로 투표에 참여해주세요!</p><div class="screen-candidates" id="screenCandidates" aria-label="출연 참가자"><div class="screen-candidate"><strong>A</strong><span id="screenNameA">불러오는 중</span></div><div class="screen-versus">VS</div><div class="screen-candidate"><strong>B</strong><span id="screenNameB">불러오는 중</span></div></div><img id="qrImage" src="./assets/qr.png" alt="관객용 투표 페이지 QR 코드" class="screen-qr"><p class="screen-url" id="screenUrl"></p><div class="screen-countdown" id="screenCountdown">--:--</div></div><div id="screenResult" hidden>
+  <p class="screen-result-kicker">FINAL RESULT</p>
+  <div class="screen-winner" id="sWinner" role="status"></div>
+</div></div><div id="screenNetwork" class="screen-network"></div><footer class="screen-footer">개운중학교 제31회 곰솔제 복면개왕</footer></main><script src="./config.js"></script><script>
+
 (() => {
-  'use strict';
+'use strict';
 const $ = id => document.getElementById(id);
 const API = String(window.MASK_VOTE_API || '').replace(/\/$/, '');
 const audienceURL = new URL('./index.html', window.location.href).href;
@@ -34,9 +36,6 @@ function timer() {
 }
 function render() {
   if (!current) return;
-  $('screenTitle').after($('sTotal'));
-$('sTotal').hidden = current.phase !== 'revealed';
-$('sTotal').style.cssText = 'font-size:28px;font-weight:700;color:#c0cae0;margin:-1.5vh 0 0vh;line-height:1.2;';
   $('screenRound').textContent=current.title || '라운드';
   $('screenNameA').textContent=current.a || 'A 참가자';
   $('screenNameB').textContent=current.b || 'B 참가자';
@@ -48,7 +47,7 @@ $('sTotal').style.cssText = 'font-size:28px;font-weight:700;color:#c0cae0;margin
   $('screenUrl').hidden=!(current.phase==='ready' || current.phase==='open');
   if (current.phase==='ready') {
     $('screenTitle').textContent='투표 준비 중';
-    $('screenHint').textContent='학우 여러분, QR 코드를 미리 스캔해 주세요!';
+    $('screenHint').textContent='관객 여러분, QR 코드를 미리 스캔해 주세요!';
   } else if (current.phase==='open') {
     $('screenTitle').textContent='지금 투표해 주세요!';
     $('screenHint').textContent='더 마음에 드는 참가자를 선택해 주세요.';
@@ -59,17 +58,10 @@ $('sTotal').style.cssText = 'font-size:28px;font-weight:700;color:#c0cae0;margin
     $('screenWaiting').hidden=true;
     $('screenResult').hidden=false;
     $('screenTitle').textContent='최종 투표 결과';
-    const a=Number(current.results?.A||0), b=Number(current.results?.B||0), total=a+b;
-    $('sA').textContent=current.a;
-    $('sB').textContent=current.b;
-    $('sAPct').textContent=percent(a,total).toFixed(1)+'%';
-    $('sBPct').textContent=percent(b,total).toFixed(1)+'%';
-    $('sABar').style.width=percent(a,total)+'%';
-    $('sBBar').style.width=percent(b,total)+'%';
-    $('sAVotes').textContent=a.toLocaleString()+'표';
-    $('sBVotes').textContent=b.toLocaleString()+'표';
-    $('sWinner').textContent=total===0?'유효 투표 없음':a===b?'무승부!':'🏆 '+(a>b?current.a:current.b)+' 승리!';
-    $('sTotal').textContent='총 '+total.toLocaleString()+'표';
+    $('sWinner').textContent = current.outcome === 'no_votes' ? '유효 투표 없음'
+      : current.outcome === 'tie' ? '무승부!'
+      : current.outcome === 'winner' ? '🏆 ' + (current.winner === 'A' ? current.a : current.b) + ' 승리!'
+      : '결과 발표 준비 중';
   }
   timer();
 }

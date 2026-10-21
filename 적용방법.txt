@@ -1,0 +1,43 @@
+복면개왕 관리자 전용 득표수·투표율 수정본
+
+변경 사항
+- 관객/대형 스크린: 결과 공개 시 승자 이름만 표시 (무승부·0표 예외 처리)
+- 관리자는 로그인 후 총투표수, A·B 득표수 및 각각의 투표율(%) 확인
+- 서버 /api/state 및 /api/live: 비공개 숫자는 전송하지 않음
+- 서버 관리자 인증 /api/admin/rounds는 기존 ADMIN_TOKEN 사용
+- 실시간 연결과 라운드 진행은 유지
+
+[GitHub 저장소에서 파일 교체]
+반드시 다음 파일을 각각 동일한 경로에 업로드하고 Commit 합니다:
+  index.html
+  admin.html
+  screen.html
+  assets/audience.js
+  assets/admin.js
+  assets/screen.js  (이전 스크린 코드를 참조하는 환경을 위한 호환 수정)
+※ screen.html은 이전에 대화에서 공유한 사용자 정의 스크린을 토대로 수정했습니다.
+  이미 추가로 바꾼 디자인이 있다면 업로드 전에 비교해 주세요.
+※ config.js, assets/styles.css, assets/shared.js, QR 그림은 교체하지 마세요.
+
+[Cloudflare 서버 수정 - 학교 담당 성인과 함께]
+  worker/src/index.js
+파일을 기존 로컬 worker/src/index.js에 덮어쓴 뒤,
+worker 폴더의 기존 wrangler.toml은 건드리지 않고 다음 실행:
+  npx wrangler deploy
+
+주의: GitHub 화면만 교체하면 숫자 보호가 완성되지 않습니다.
+반드시 Worker 서버 파일도 교체·배포해야 합니다.
+DB는 삭제/초기화/재생성하지 마세요. schema.sql을 다시 실행할 필요도 없습니다.
+ADMIN_TOKEN은 건드리지 않습니다.
+
+[검증]
+  1. 관리자에서 테스트 라운드를 사용하고 60초 투표 후 마감 및 공개.
+  2. 관리자 화면에는 실제 득표수와 투표율이 보이는지 확인.
+  3. 관객 및 스크린에는 승자 이름만 보이는지 확인.
+  4. 브라우저에서 Worker URL + /api/state 확인: revealed일 때 winner/outcome은 보이되 results/A/B/total 숫자는 없어야 함.
+  5. 관리자 페이지를 로그아웃한 상태로 열어 개인 득표수를 볼 수 없어야 함.
+  6. OBS 스크린 소스 새로고침 및 2개 기기 실시간 자동 갱신 점검.
+
+※ 브라우저 자동 ID를 사용하는 기존 방식의 제한은 유지되어,
+   다른 브라우저나 시크릿 창을 이용한 중복 투표를 완전히 막지는 못합니다.
+※ 시험용 투표 이력은 기존 서버 DB에 남으므로 실제 행사와 혼용하지 마세요.

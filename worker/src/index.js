@@ -1,6 +1,8 @@
+import { DurableObject } from "cloudflare:workers";
+
 /**
  * School MASK VOTE — Cloudflare Workers + D1
- * Public API does not reveal tallies before a round is revealed.
+ * Public API never reveals tallies, including after the winner is announced.
  * Browser ID is NOT proof of a unique person or physical phone.
  */
 
@@ -52,9 +54,13 @@ async function getState(env) {
   if (!r) return { serverTime: Date.now(), round: null };
   const now = Date.now();
   const current = { id:r.id, title:r.title, a:r.option_a, b:r.option_b, phase:phase(r, now), startedAt:r.started_at_ms || null, endsAt:r.ends_at_ms || null };
-  // Never reveal counts to the public before explicit admin publication.
+  // Public clients (including WebSocket subscribers) receive the outcome ONLY.
+  // Vote totals and percentages are available exclusively from authenticated /api/admin/rounds.
   if (r.status === 'revealed') {
-    current.results = { A: r.a_votes || 0, B: r.b_votes || 0, total:(r.a_votes || 0) + (r.b_votes || 0) };
+    const a = Number(r.a_votes || 0);
+    const b = Number(r.b_votes || 0);
+    current.outcome = a + b === 0 ? 'no_votes' : a === b ? 'tie' : 'winner';
+    current.winner = current.outcome === 'winner' ? (a > b ? 'A' : 'B') : null;
   }
   return { serverTime:now, round:current };
 }
@@ -152,8 +158,44 @@ async function adminAction(env, action, request) {
   }
   return fail('알 수 없는 작업입니다.',404);
 }
+/**
+ * A single low-traffic WebSocket room for the school event.
+ * Durable Object hibernation avoids sending 1,000 repeated state requests.
+ * The client cannot send votes or administrative commands over this channel.
+ */
+export class VoteLiveRoom extends DurableObject {
+  async fetch(request) {
+    if (request.headers.get('Upgrade')?.toLowerCase() === 'websocket') {
+      const [client, server] = Object.values(new WebSocketPair());
+      this.ctx.acceptWebSocket(server);
+      return new Response(null, { status: 101, webSocket: client });
+    }
+    if (request.method === 'POST' && new URL(request.url).pathname === '/broadcast') {
+      const payload = await request.text();
+      if (payload.length > 4096) return new Response('too large', { status: 413 });
+      for (const socket of this.ctx.getWebSockets()) {
+        try { socket.send(payload); } catch (e) { console.log('Disconnected listener', String(e)); }
+      }
+      return new Response('ok');
+    }
+    return new Response('Not found', { status: 404 });
+  }
+  webSocketMessage(socket, message) {
+    // Client messages are ignored. All authoritative changes are sent by the Worker.
+  }
+}
+
+/** Broadcast only *public* state (never include raw counts or percentages). */
+async function broadcastState(env) {
+  const state = await getState(env);
+  const res = await env.LIVE.getByName('school-show').fetch('https://internal/broadcast', {
+    method: 'POST', body: JSON.stringify({ type: 'state', state })
+  });
+  if (!res.ok) throw new Error('Real-time broadcast failed');
+}
+
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const origin=request.headers.get('origin');
     const corsHeaders=cors(origin,env);
     if (origin && origin !== env.ALLOWED_ORIGIN) return fail('허용되지 않은 웹사이트입니다.',403,corsHeaders);
@@ -161,6 +203,10 @@ export default {
     const url=new URL(request.url), path=url.pathname;
     try {
       if(path==='/api/state' && request.method==='GET') return json(await getState(env),200,corsHeaders);
+      if(path==='/api/live' && request.method==='GET') {
+        if(request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') return fail('WebSocket connection required',426,corsHeaders);
+        return env.LIVE.getByName('school-show').fetch(request);
+      }
       if(path==='/api/vote' && request.method==='POST') {
         const result=await vote(env,request);
         return new Response(result.body,{status:result.status,headers:{...Object.fromEntries(result.headers),...corsHeaders}});
@@ -171,6 +217,7 @@ export default {
         if(request.method==='POST') {
           const action=path.slice('/api/admin/'.length);
           const result=await adminAction(env,action,request);
+          if(result.ok) ctx.waitUntil(broadcastState(env).catch(e=>console.error('Real-time notify error',e)));
           return new Response(result.body,{status:result.status,headers:{...Object.fromEntries(result.headers),...corsHeaders}});
         }
       }

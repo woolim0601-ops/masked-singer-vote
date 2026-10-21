@@ -1,4 +1,4 @@
-import {$,api,clock,percent,roundPercent,connectLive} from './shared.js';
+import {$,api,clock,connectLive} from './shared.js';
 let current=null, selected=null, timerOffset=0, locked=false, isFetching=false;
 const VOTER_STORAGE_KEY='mask-stage-browser-id-v1';
 function browserId(){
@@ -48,13 +48,10 @@ function render(){
     $('messagePanel').hidden=false;setMessage('🔒','투표가 마감되었습니다','결과를 집계하고 있습니다. 운영자의 발표를 기다려주세요.');setBadge('투표 마감');
   }else if(r.phase==='revealed'){
     $('resultPanel').hidden=false;setBadge('결과 공개');
-    const a=r.results?.A||0,b=r.results?.B||0,total=a+b;
-    $('resultNameA').textContent=r.a;$('resultNameB').textContent=r.b;
-    $('resultPctA').textContent=roundPercent(a,total);$('resultPctB').textContent=roundPercent(b,total);
-    $('resultBarA').style.width=`${percent(a,total)}%`;$('resultBarB').style.width=`${percent(b,total)}%`;
-    $('resultVotesA').textContent=`${a.toLocaleString()}표`;$('resultVotesB').textContent=`${b.toLocaleString()}표`;
-    $('winner').textContent=total===0?'유효 투표가 없습니다':a===b?'무승부!':`🏆 ${a>b?r.a:r.b} 승리!`;
-    $('resultTotal').textContent=`총 ${total.toLocaleString()}표 참여`;
+    $('winner').textContent = r.outcome === 'no_votes' ? '유효 투표가 없습니다.'
+      : r.outcome === 'tie' ? '무승부!'
+      : r.outcome === 'winner' ? `🏆 ${r.winner === 'A' ? r.a : r.b} 승리!`
+      : '결과 발표를 준비하고 있습니다.';
   }
   $('phaseHint').textContent=r.phase==='open'?'투표 종료까지 남은 시간':r.phase==='closed'?'공식 집계 중':r.phase==='revealed'?'관객 투표가 종료되었습니다':'투표 시작을 기다리는 중';
   updateTimer();

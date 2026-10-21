@@ -1,62 +1,34 @@
-export const $ = id => document.getElementById(id);
-export const API_ROOT = (window.MASK_VOTE_API || '').replace(/\/$/,'');
-export function configured(){return /^https:\/\/[a-z0-9.-]+$/i.test(API_ROOT) && !API_ROOT.includes('PASTE_');}
-export async function api(path, { method='GET', data, token }={}) {
-  if (!configured()) throw new Error('config.js에 Cloudflare Workers 주소를 먼저 입력해주세요.');
-  const controller=new AbortController();
-  const timeout=setTimeout(()=>controller.abort(),11000);
-  try {
-    const response=await fetch(`${API_ROOT}${path}`,{
-      method, signal:controller.signal, cache:'no-store',
-      headers:{...(data?{'Content-Type':'application/json'}:{}),...(token?{'Authorization':`Bearer ${token}`}:{})},
-      ...(data?{body:JSON.stringify(data)}:{})
-    });
-    let parsed;
-    try {parsed=await response.json();} catch {throw new Error(`서버 응답 오류 (${response.status})`);}
-    if(!response.ok) throw new Error(parsed.error || `요청 실패 (${response.status})`);
-    return parsed;
-  } catch(err) {
-    if(err.name==='AbortError') throw new Error('서버 응답이 늦습니다. 잠시 뒤 다시 확인해주세요.');
-    throw err;
-  } finally {clearTimeout(timeout);}
+import {$,api,clock,connectLive} from './shared.js';
+let current=null,offset=0,fetching=false;
+const audienceURL = new URL('./index.html',window.location.href).href;
+$('screenUrl').textContent=audienceURL;
+function timer(){if(!current){$('screenCountdown').textContent='--:--';return;}
+  const remaining=(current.endsAt || 0)-Date.now()+offset;
+  $('screenCountdown').textContent=current.phase==='open'?clock(remaining):'';
+  if(current.phase==='open'&&remaining<=0){current.phase='closed';render();void refresh();}
 }
-export function clock(ms){const secs=Math.max(0,Math.ceil(ms/1000));return `${String(Math.floor(secs/60)).padStart(2,'0')}:${String(secs%60).padStart(2,'0')}`;}
-export function percent(v,total){return total>0 ? (v/total*100) : 0;}
-export function roundPercent(v,total){return `${percent(v,total).toFixed(1)}%`;}
-
-
-/**
- * Receive immediately pushed event changes. If disconnected, reconnect automatically.
- * This never sends an audience vote over WebSocket; POST /api/vote remains authoritative.
- */
-export function connectLive(onState, onReconnect = () => {}, onConnection = () => {}) {
-  if (!configured()) return () => false;
-  let socket = null, isStopped = false, attempts = 0, retryTimer = null;
-  function open() {
-    if (isStopped || (socket && (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN))) return;
-    const endpoint = `${API_ROOT.replace(/^http/i, 'ws')}/api/live`;
-    socket = new WebSocket(endpoint);
-    socket.onopen = () => {
-      attempts = 0;
-      onConnection(true);
-      // Recover changes made between the initial GET and the socket handshake.
-      onReconnect();
-    };
-    socket.onmessage = event => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data?.type === 'state' && data.state?.serverTime) onState(data.state);
-      } catch (e) { console.warn('Invalid state update', e); }
-    };
-    socket.onclose = () => {
-      onConnection(false);
-      if (isStopped) return;
-      const delay = Math.min(15000, 1000 * 2 ** Math.min(attempts++, 4)) + Math.floor(Math.random()*800);
-      retryTimer = setTimeout(open, delay);
-    };
-    socket.onerror = () => { socket?.close(); };
+function render(){if(!current)return;
+  $('screenRound').textContent=current.title;
+  $('screenWaiting').hidden=false;$('screenResult').hidden=true;
+  if(current.phase==='ready'){$('screenTitle').textContent='투표 준비 중';$('screenHint').textContent='관객 여러분, QR 코드를 미리 스캔해주세요!';$('qrImage').hidden=false;$('screenUrl').hidden=false;}
+  else if(current.phase==='open'){$('screenTitle').textContent='지금 투표해주세요!';$('screenHint').textContent='더 마음에 드는 참가자를 선택해주세요.';$('qrImage').hidden=false;$('screenUrl').hidden=false;}
+  else if(current.phase==='closed'){$('screenTitle').textContent='최종 결과 집계 중';$('screenHint').textContent='투표가 마감되었습니다. 잠시 후 공개됩니다.';$('qrImage').hidden=true;$('screenUrl').hidden=true;}
+  else if(current.phase==='revealed'){
+    $('screenWaiting').hidden=true;$('screenResult').hidden=false;
+    $('screenTitle').textContent='최종 투표 결과';
+    $('sWinner').textContent = current.outcome === 'no_votes' ? '유효 투표 없음'
+      : current.outcome === 'tie' ? '무승부!'
+      : current.outcome === 'winner' ? `🏆 ${current.winner === 'A' ? current.a : current.b} 승리!`
+      : '결과 발표 준비 중';
   }
-  open();
-  window.addEventListener('online', () => { if (!isStopped && socket?.readyState !== WebSocket.OPEN) { clearTimeout(retryTimer); open(); } });
-  return () => socket?.readyState === WebSocket.OPEN;
+  timer();
 }
+function applyState(state){offset=Date.now()-state.serverTime;current=state.round;if(current)render();$('screenNetwork').textContent='';}
+async function refresh(){if(fetching)return;fetching=true;
+  try{applyState(await api('/api/state'));}
+  catch(e){$('screenNetwork').textContent=`연결 확인 필요: ${e.message}`;}
+  finally{fetching=false;}
+}
+const isLiveConnected=connectLive(applyState,()=>void refresh());
+setInterval(()=>{if(!isLiveConnected())void refresh();},15000);
+setInterval(timer,250);void refresh();
