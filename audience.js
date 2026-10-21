@@ -1,4 +1,4 @@
-import {$,api,clock,percent,roundPercent,connectLive} from './shared.js';
+import {$,api,clock,connectLive} from './shared.js';
 let current=null, selected=null, timerOffset=0, locked=false, isFetching=false;
 const VOTER_STORAGE_KEY='mask-stage-browser-id-v1';
 function browserId(){
@@ -39,24 +39,22 @@ function render(){
     $('messagePanel').hidden=false;setMessage('🎭','곧 투표가 시작됩니다','공연을 즐겨주세요! 운영자가 투표를 시작하면 자동으로 안내됩니다.');setBadge('시작 대기');
   }else if(r.phase==='open'){
     if(already){
-      $('messagePanel').hidden=false;setMessage('✅','투표가 접수되었습니다','선택해주셔서 감사합니다. 60초 투표 종료 후 결과 공개를 기다려주세요.');
+      $('messagePanel').hidden=false;setMessage('✅','투표가 접수되었습니다','참여해 주셔서 감사합니다. 다음 안내를 기다려주세요.');
     }else{
       $('votePanel').hidden=false;$('submitVote').disabled=selected===null || locked;$('chooseA').disabled=false;$('chooseB').disabled=false;
     }
     setBadge('투표 진행 중');
   }else if(r.phase==='closed'){
-    $('messagePanel').hidden=false;setMessage('🔒','투표가 마감되었습니다','결과를 집계하고 있습니다. 운영자의 발표를 기다려주세요.');setBadge('투표 마감');
+    $('messagePanel').hidden=false;setMessage('🔒','투표가 마감되었습니다','참여해 주셔서 감사합니다. 다음 안내를 기다려주세요.');setBadge('투표 마감');
   }else if(r.phase==='revealed'){
-    $('resultPanel').hidden=false;setBadge('결과 공개');
-    const a=r.results?.A||0,b=r.results?.B||0,total=a+b;
-    $('resultNameA').textContent=r.a;$('resultNameB').textContent=r.b;
-    $('resultPctA').textContent=roundPercent(a,total);$('resultPctB').textContent=roundPercent(b,total);
-    $('resultBarA').style.width=`${percent(a,total)}%`;$('resultBarB').style.width=`${percent(b,total)}%`;
-    $('resultVotesA').textContent=`${a.toLocaleString()}표`;$('resultVotesB').textContent=`${b.toLocaleString()}표`;
-    $('winner').textContent=total===0?'유효 투표가 없습니다':a===b?'무승부!':`🏆 ${a>b?r.a:r.b} 승리!`;
-    $('resultTotal').textContent=`총 ${total.toLocaleString()}표 참여`;
+    // 관객용 웹사이트에서는 공개된 승패 정보를 표시하지 않습니다.
+    // 관리자 전용 수치와 공연장 스크린 표시 동작은 다른 파일에서 유지합니다.
+    $('resultPanel').hidden=true;
+    $('messagePanel').hidden=false;
+    setMessage('✅','투표가 종료되었습니다','참여해 주셔서 감사합니다. 결과는 공연장 진행 안내에 따라 확인해 주세요.');
+    setBadge('투표 종료');
   }
-  $('phaseHint').textContent=r.phase==='open'?'투표 종료까지 남은 시간':r.phase==='closed'?'공식 집계 중':r.phase==='revealed'?'관객 투표가 종료되었습니다':'투표 시작을 기다리는 중';
+  $('phaseHint').textContent=r.phase==='open'?'투표 종료까지 남은 시간':r.phase==='closed'?'투표가 마감되었습니다':r.phase==='revealed'?'투표가 종료되었습니다':'투표 시작을 기다리는 중';
   updateTimer();
 }
 function applyState(state) {
