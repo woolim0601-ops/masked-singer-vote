@@ -47,12 +47,11 @@ function render(){
   }else if(r.phase==='closed'){
     $('messagePanel').hidden=false;setMessage('🔒','투표가 마감되었습니다','참여해 주셔서 감사합니다. 다음 안내를 기다려주세요.');setBadge('투표 마감');
   }else if(r.phase==='revealed'){
-    // 관객용 웹사이트에서는 공개된 승패 정보를 표시하지 않습니다.
-    // 관리자 전용 수치와 공연장 스크린 표시 동작은 다른 파일에서 유지합니다.
-    $('resultPanel').hidden=true;
-    $('messagePanel').hidden=false;
-    setMessage('✅','투표가 종료되었습니다','참여해 주셔서 감사합니다. 결과는 공연장 진행 안내에 따라 확인해 주세요.');
-    setBadge('투표 종료');
+  $('resultPanel').hidden=false;
+  setBadge('투표 종료');
+  $('winner').textContent='';
+  $('winner').hidden=true;
+}
   }
   $('phaseHint').textContent=r.phase==='open'?'투표 종료까지 남은 시간':r.phase==='closed'?'투표가 마감되었습니다':r.phase==='revealed'?'투표가 종료되었습니다':'투표 시작을 기다리는 중';
   updateTimer();
